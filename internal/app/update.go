@@ -3,6 +3,8 @@ package app
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -39,6 +41,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
+func setHomeDir(path string) string {
+	if path == "~" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return path
+		}
+		return home
+	}
+
+	if strings.HasPrefix(path, "~"+string(filepath.Separator)) {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return path
+		}
+		return filepath.Join(home, strings.TrimPrefix(path, "~"+string(filepath.Separator)))
+	}
+
+	return path
+}
+
 func (m model) updateInputCSV(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if key, ok := msg.(tea.KeyMsg); ok {
 		switch key.String() {
@@ -49,7 +71,7 @@ func (m model) updateInputCSV(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "enter":
-			path := strings.TrimSpace(m.input.Value())
+			path := setHomeDir(strings.TrimSpace(m.input.Value()))
 			headers, err := csvsvc.ReadHeaders(path)
 			if err != nil {
 				m.errorMsg = err.Error()
@@ -116,7 +138,7 @@ func (m model) updateOutputPath(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "enter":
-			outputPath := strings.TrimSpace(m.input.Value())
+			outputPath := setHomeDir(strings.TrimSpace(m.input.Value()))
 			m.outputPath = outputPath
 
 			err := csvsvc.ValidateDestination(outputPath, false)

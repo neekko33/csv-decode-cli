@@ -55,12 +55,12 @@ func completePath(input string) (string, bool) {
 			if matches[0].IsDir() {
 				completed += string(filepath.Separator)
 			}
-			return completed, true
+			return collapseHome(completed, value), true
 		}
 		return input, false
 	}
 
-	return dirPart + prefix, true
+	return collapseHome(dirPart+prefix, value), true
 }
 
 func expandHome(path string) (string, bool) {
@@ -95,4 +95,26 @@ func commonPrefix(a, b string) string {
 		i++
 	}
 	return a[:i]
+}
+
+func collapseHome(path, originalInput string) string {
+	if !strings.HasPrefix(originalInput, "~") {
+		return path
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return path
+	}
+
+	if path == home {
+		return "~"
+	}
+
+	prefix := home + string(filepath.Separator)
+	if strings.HasPrefix(path, prefix) {
+		return "~" + strings.TrimPrefix(path, home)
+	}
+
+	return path
 }
